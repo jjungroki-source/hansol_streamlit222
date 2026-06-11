@@ -1,0 +1,14 @@
+# Streamlit secrets (로컬 개발용 - 절대 GitHub에 올리면 안 됨)
+.streamlit/secrets.toml
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+venv/
+.venv/
+
+# OS
+.DS_Store
+Thumbs.db
