@@ -4,7 +4,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
 from datetime import datetime, timedelta
-import google.generativeai as genai
+from google import genai
 
 st.set_page_config(
     page_title="Stock & AI Chatbot",
@@ -159,10 +159,9 @@ elif page == "🤖 AI 챗봇":
         st.info("👈 왼쪽 사이드바에서 Gemini API Key를 먼저 입력해주세요.")
         st.stop()
 
-    # 모델 초기화
+    # 클라이언트 초기화
     try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-pro")
+        client = genai.Client(api_key=api_key)
     except Exception as e:
         st.error(f"API 초기화 실패: {e}")
         st.stop()
@@ -170,15 +169,12 @@ elif page == "🤖 AI 챗봇":
     # 채팅 히스토리 초기화
     if "messages" not in st.session_state:
         st.session_state.messages = []
-    if "chat" not in st.session_state:
-        st.session_state.chat = model.start_chat(history=[])
 
     # 히스토리 초기화 버튼
     col1, col2 = st.columns([6, 1])
     with col2:
         if st.button("🗑️ 초기화"):
             st.session_state.messages = []
-            st.session_state.chat = model.start_chat(history=[])
             st.rerun()
 
     # 기존 메시지 렌더링
@@ -188,7 +184,6 @@ elif page == "🤖 AI 챗봇":
 
     # 입력창
     if prompt := st.chat_input("메시지를 입력하세요..."):
-        # 사용자 메시지
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
@@ -197,9 +192,17 @@ elif page == "🤖 AI 챗봇":
         with st.chat_message("assistant"):
             with st.spinner("생각 중..."):
                 try:
-                    response = st.session_state.chat.send_message(prompt)
+                    # 대화 히스토리를 contents 형식으로 변환
+                    contents = [
+                        {"role": m["role"], "parts": [{"text": m["content"]}]}
+                        for m in st.session_state.messages
+                    ]
+                    response = client.models.generate_content(
+                        model="gemini-2.0-flash",
+                        contents=contents,
+                    )
                     reply = response.text
                 except Exception as e:
                     reply = f"❌ 오류 발생: {e}"
             st.markdown(reply)
-            st.session_state.messages.append({"role": "assistant", "content": reply})
+            st.session_state.messages.append({"role": "model", "content": reply})
